@@ -1,84 +1,149 @@
-# EPO Register Document Downloader (EPO OA Downloader)
+# epo-oa-cli
 
-A premium, interactive CLI tool built with Python to safely and efficiently download patent prosecution history documents ("EP All documents") from the **European Patent Register (EPO)**.
+**EPO patent prosecution history CLI** — Download, parse, and analyze European Patent Office (EPO) prosecution documents for AI-assisted patent analysis.
 
-This utility is carefully designed with **Rate Limiting & Politeness** mechanisms in mind to prevent overloading the public servers while providing a harmonious user experience.
-
----
-
-## Features
-
-- **Dynamic Metadata Parsing**: Fetches the complete table of documents (Date, Document Type, Procedure, Pages) for any specified European patent.
-- **Harmonious Terminal UI**: Uses `rich` to render elegant status spinners, stylized metadata tables, and smooth download progress bars.
-- **Three Versatile Download Modes**:
-  1. **ZIP Archive (Recommended)**: Bundles all selected/complete documents into a single ZIP archive *server-side*. Highly recommended as it minimises the number of HTTP requests.
-  2. **Merged PDF**: Merges all selected documents into a single, comprehensive PDF document.
-  3. **Individual PDFs**: Downloads each document separately with custom, structured filenames (e.g. `01_20181212_Refund_of_fees.pdf`).
-- **Politeness & Rate Limiting Built-in**:
-  - Automatically simulates browser behaviour using customised headers (User-Agent, Accept-Language).
-  - Enforces **random delays (1.5s ~ 3.0s)** between sequential file downloads in individual mode to safeguard against IP blocking.
-- **Non-interactive Automation Support**: Supports command-line arguments to completely bypass interactive prompts for headless scripting or CI/CD pipelines.
+```bash
+pip install epo-oa-cli
+epo-oa run EP21841218
+```
 
 ---
 
-## Prerequisites
+## Overview
 
-This project utilizes [uv](https://github.com/astral-sh/uv), a fast Python package installer and resolver. Please ensure you have `uv` installed on your machine.
+`epo-oa` fetches the complete prosecution history of any EP patent from the [EPO Register](https://register.epo.org/), extracts PDF text (with optional OCR), and generates a structured `prosecution.md` file ready for AI analysis (Claude, GPT-4, etc.).
+
+```
+epo-oa run EP21841218
+  → Downloads 40 documents as ZIP
+  → Extracts & parses toc.xml
+  → Generates file/EP21841218/EP21841218_prosecution.md
+```
 
 ---
 
 ## Installation
 
-You do not need to manually configure virtual environments. `uv` will automatically manage virtual environments and dependencies upon execution.
-
-However, if you wish to pre-install dependencies, run the following in the project root:
 ```bash
-uv pip install -r pyproject.toml
+pip install epo-oa-cli
+
+# With OCR support (for image-based PDFs)
+pip install "epo-oa-cli[ocr]"
+```
+
+Requires Python 3.13+.
+
+---
+
+## Quick Start
+
+```bash
+# 1. List all documents
+epo-oa list EP21841218
+
+# 2. Download as ZIP + extract
+epo-oa download EP21841218
+
+# 3. Parse PDFs → prosecution.md
+epo-oa extract EP21841218
+
+# 4. All-in-one
+epo-oa run EP21841218
+```
+
+### With OCR (for image-based PDFs)
+
+EPO PDFs are full-page image scans. Run OCR first to embed text into the analysis file:
+
+```bash
+# OCR key documents only
+epo-oa ocr EP21841218 --codes 1703,1224,ABEX
+
+# OCR all documents
+epo-oa ocr EP21841218
+
+# Extract with OCR text embedded
+epo-oa extract EP21841218 --with-ocr
 ```
 
 ---
 
-## Usage
+## Commands
 
-By default, all downloaded outputs (ZIPs, PDFs) and scripts are backed up under the `./temp` directory to keep your workspace clean.
+| Command | Description |
+|---------|-------------|
+| `epo-oa list <EP>` | List prosecution documents from EPO Register |
+| `epo-oa download <EP>` | Download all documents as ZIP archive |
+| `epo-oa extract <EP>` | Parse PDFs → `prosecution.md` / `prosecution.json` |
+| `epo-oa ocr <EP>` | OCR image-based PDFs → searchable `*_ocr.pdf` |
+| `epo-oa run <EP>` | Download + extract in one step |
 
-### 1. Interactive Mode
-Run the script without any arguments. You will be prompted to enter the patent number and select the download mode dynamically.
+### Options
+
 ```bash
-uv run python main.py
-```
-- **Step 1**: Enter the target patent application number (e.g., `EP16183755`).
-- **Step 2**: Choose a download option (0-3) from the interactive prompt.
-
-### 2. Automated Mode (Command Line Arguments)
-Bypass all interactive prompts by providing the patent number and the download option code as positional arguments:
-```bash
-uv run python main.py <PATENT_NUMBER> <DOWNLOAD_MODE_CODE>
-```
-
-#### Download Mode Codes:
-- `1`: **ZIP Archive Download** (Highly recommended & server-friendly)
-- `2`: **Merged PDF Download** (Single combined PDF)
-- `3`: **Individual PDFs Download** (Downloads each file one-by-one with politeness delays)
-- `0`: **Exit**
-
-#### Examples:
-```bash
-# Download all documents for EP16183755 as a server-side zipped archive
-uv run python main.py EP16183755 1
-
-# Download all documents for EP16183755 as a single merged PDF
-uv run python main.py EP16183755 2
-
-# Download all documents as individual PDFs with rate-limiting protection
-uv run python main.py EP16183755 3
+epo-oa list EP21841218 --format json          # JSON output
+epo-oa download EP21841218 --force            # Re-download
+epo-oa extract EP21841218 --format json       # JSON output
+epo-oa extract EP21841218 --with-ocr          # Embed OCR text
+epo-oa ocr EP21841218 --codes 1703,ABEX       # Selective OCR
+epo-oa ocr EP21841218 --in-place              # Overwrite originals
 ```
 
 ---
 
-## Backup & Directory Structure
-When executed, the project maintains the following layout:
-- `./temp/main.py`: Current production script.
-- `./temp/pyproject.toml`: Dependency configuration.
-- `./temp/EP16183755_all_documents.zip`: Downloaded ZIP archive.
-- `./temp/EP16183755_individual_pdfs/`: Individual PDF files folder (when option 3 is executed).
+## Output: `prosecution.md`
+
+The generated markdown file is structured for AI agents:
+
+```markdown
+# EPO Prosecution Analysis — EP21841218
+
+## Summary
+| Item | Count |
+|------|-------|
+| Total documents | 40 |
+| 🔴 Office Actions | 2 |
+| 🔵 Amendments | 13 |
+| ✅ Grant / Decision | 8 |
+
+## Timeline
+| Date | Cat | Document | File |
+|------|-----|----------|------|
+| 2023-10-30 | 🔍 | European Search Opinion (1703) 🖼️ | ... |
+| 2024-02-15 | 🔵 | Amended Claims (CLMSABEX) 🖼️ | ... |
+| 2026-02-05 | ✅ | Decision to Grant (2006A) 🖼️ | ... |
+
+## 🔴 Office Action Documents
+### European Search Opinion — 2023-10-30
+**OCR Text:**
+```text
+D1 WO 2020/138918 A1 (SAMSUNG ELECTRONICS CO LTD)
+1.1 D1 discloses an electronic device with the following features...
+` `` `
+```
+
+---
+
+## Politeness & Rate Limiting
+
+This tool accesses a **public EPO server**. It enforces:
+- Random delays (1.5–3.0s) between requests
+- Browser-like headers
+- ZIP archive download (minimises HTTP requests)
+
+Please do not run this tool in tight loops or CI pipelines without appropriate throttling.
+
+---
+
+## Notes for AI Agents
+
+- Image-only PDFs show `🖼️` — provide the `path` field directly to vision-capable models
+- Run `epo-oa ocr` + `--with-ocr` to embed text for language models
+- JSON output (`--format json`) includes full `path` and `text` fields for programmatic access
+- The `prosecution.md` is designed to fit within typical LLM context windows for smaller dockets
+
+---
+
+## License
+
+MIT

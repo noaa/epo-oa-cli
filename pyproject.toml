@@ -1,9 +1,22 @@
 [project]
 name = "epo-oa-cli"
 version = "0.2.0"
-description = "EPO 특허 심사과정 분석 CLI — 문서 다운로드 · PDF 파싱 · MD 생성"
+description = "EPO patent prosecution history CLI — download, parse, and analyze European patent documents for AI-assisted analysis"
 readme = "README.md"
+license = { text = "MIT" }
 requires-python = ">=3.13"
+keywords = ["epo", "patent", "prosecution", "european-patent", "office-action", "cli", "ai"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Legal Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
 dependencies = [
     "beautifulsoup4>=4.14.3",
     "click>=8.0",
@@ -11,6 +24,10 @@ dependencies = [
     "requests>=2.34.2",
     "rich>=15.0.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/noaa/epo-oa-cli"
+Repository = "https://github.com/noaa/epo-oa-cli"
 
 [project.scripts]
 epo-oa = "epo_oa.cli:main"
@@ -24,3 +41,11 @@ packages = ["src/epo_oa"]
 
 [project.optional-dependencies]
 ocr = ["ocrmypdf>=16.0"]
+
+[dependency-groups]
+dev = [
+    "hatchling>=1.29.0",
+    "twine>=6.0",
+    "pytest>=8.0",
+    "ruff>=0.4",
+]
