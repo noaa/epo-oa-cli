@@ -1,10 +1,10 @@
 [project]
 name = "epo-oa-cli"
-version = "0.2.0"
+version = "0.2.1"
 description = "EPO patent prosecution history CLI — download, parse, and analyze European patent documents for AI-assisted analysis"
 readme = "README.md"
 license = { text = "MIT" }
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 keywords = ["epo", "patent", "prosecution", "european-patent", "office-action", "cli", "ai"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -13,6 +13,7 @@ classifiers = [
     "Intended Audience :: Legal Industry",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
     "Topic :: Scientific/Engineering :: Information Analysis",

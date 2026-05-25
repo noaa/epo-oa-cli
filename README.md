@@ -31,7 +31,7 @@ pip install epo-oa-cli
 pip install "epo-oa-cli[ocr]"
 ```
 
-Requires Python 3.13+.
+Requires Python 3.12+.
 
 ---
 

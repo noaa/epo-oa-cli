@@ -1,84 +1,163 @@
-# 유럽 특허 심사과정 문서 다운로더 (EPO OA Downloader)
+# epo-oa-cli
 
-유럽 특허청(European Patent Register)의 특정 특허 심사 이력 문서 목록("EP All documents")을 안전하고 효율적으로 파싱하고 다운로드할 수 있도록 돕는 대화형 파이썬 CLI 도구입니다.
+**EPO 유럽 특허 심사과정 분석 CLI** — 유럽 특허청(EPO) 심사 문서를 다운로드·파싱하여 AI 분석에 최적화된 `prosecution.md`를 생성합니다.
 
-이 프로그램은 공공 서버의 과부하를 막고 안전한 이용 환경을 보장하기 위해 **Rate Limiting(과도한 접속 제한) 및 Politeness(서버 친화적 지연)** 원칙을 엄격하게 준수하도록 설계되었습니다.
-
----
-
-## 주요 기능
-
-- **실시간 문서 메타데이터 수집**: 대상 특허의 전체 문서 목록(날짜, 문서 종류, 심사 단계, 페이지 수)을 실시간으로 완벽하게 수집합니다.
-- **아름다운 터미널 UI**: `rich` 라이브러리를 활용하여 깔끔하고 보기 편한 메타데이터 표 시각화, 진행 상태 스피너, 그리고 직관적인 다운로드 진행바(Progress bar)를 제공합니다.
-- **세 가지 유연한 다운로드 모드**:
-  1. **ZIP 아카이브 다운로드 (추천)**: 모든 문서를 서버측에서 하나의 ZIP 파일로 압축하여 다운로드합니다. HTTP 요청 횟수를 획기적으로 줄여주므로 **가장 서버 친화적이고 안전한 방식**입니다.
-  2. **병합 PDF 다운로드**: 선택된 모든 심사 문서를 하나의 통합 PDF 문서로 병합하여 다운로드합니다.
-  3. **개별 PDF 순차 다운로드**: 각 문서를 보기 좋게 정렬된 파일명(예: `01_20181212_Refund_of_fees.pdf`)으로 개별 저장합니다.
-- **차단 및 과부하 방지 시스템**:
-  * 실제 브라우저 접속 환경처럼 보이도록 커스텀 헤더(User-Agent, Accept-Language 등)를 완벽히 모사합니다.
-  * 개별 PDF 다운로드 모드(Option 3) 실행 시, 각 파일 다운로드 요청 사이에 **1.5초 ~ 3.0초의 랜덤 대기 시간(Random Delay)**을 자동으로 적용하여 서버의 IP 차단을 근본적으로 차단합니다.
-- **명령행 인자(Arguments) 지원**: 터미널 프롬프트 입력 단계 없이 `sys.argv` 인자를 전달받아 한 번에 실행할 수 있으므로, 크론탭이나 백그라운드 배치 스크립트 등 비대화형 자동화 파이프라인 연동이 완벽하게 가능합니다.
-
----
-
-## 준비 사항
-
-이 프로젝트는 매우 빠른 파이썬 패키지 관리 및 가상환경 도구인 [uv](https://github.com/astral-sh/uv)를 표준으로 사용합니다. 실행 전에 시스템에 `uv`가 설치되어 있는지 확인해 주세요.
-
----
-
-## 설치 방법
-
-`uv` 도구를 사용하면 별도의 복잡한 가상환경 생성이나 패키지 수동 설치 과정이 불필요합니다. 명령어 실행 시 자동으로 환경을 추적하고 패키지를 격리 관리합니다.
-
-필요에 따라 패키지를 미리 설치하길 원하시는 경우, 프로젝트 루트 폴더에서 아래 명령을 실행합니다:
 ```bash
-uv pip install -r pyproject.toml
+pip install epo-oa-cli
+epo-oa run EP21841218
 ```
 
 ---
 
-## 사용 가이드
+## 개요
 
-모든 소스코드 백업본과 실제 다운로드 결과물은 워크스페이스의 위생을 위해 `./temp` 폴더 내에 일괄 관리 및 저장됩니다.
+`epo-oa`는 [EPO Register](https://register.epo.org/)에서 EP 특허의 전체 심사 이력을 가져오고, PDF 텍스트를 추출(OCR 선택)하여 AI 에이전트(Claude, GPT-4 등)가 바로 분석할 수 있는 구조화된 마크다운 파일을 생성합니다.
 
-### 1. 대화형 실행 모드 (Interactive Mode)
-아무런 옵션 없이 실행하면 화면의 대화형 프롬프트 안내에 따라 특허 번호를 입력하고 원하는 다운로드 방식을 유기적으로 선택할 수 있습니다.
-```bash
-uv run python main.py
 ```
-- **1단계**: 대상 특허 번호 입력 (기본값: `EP16183755`)
-- **2단계**: 원하는 다운로드 옵션 번호(0~3) 입력
-
-### 2. 비대화형 실행 모드 (인자 값 직접 전달)
-명령어 뒤에 분석할 특허 번호와 다운로드 방식 코드를 순서대로 지정하여 프롬프트를 생략하고 즉시 다운로드를 완료합니다:
-```bash
-uv run python main.py <특허번호> <다운로드방식코드>
-```
-
-#### 다운로드 방식 코드 일람:
-- `1`: **ZIP 아카이브 다운로드** (매우 안전하며 가장 권장하는 서버 친화적 방식)
-- `2`: **병합 PDF 다운로드** (문서 전체가 하나로 합쳐진 PDF)
-- `3`: **개별 PDF 순차 다운로드** (파일별 지연 시간을 두고 개별 PDF 저장)
-- `0`: **프로그램 종료**
-
-#### 실행 예시:
-```bash
-# EP16183755 특허의 문서를 하나의 ZIP 파일로 빠르게 다운로드
-uv run python main.py EP16183755 1
-
-# EP16183755 특허의 전체 문서를 하나의 PDF로 병합 다운로드
-uv run python main.py EP16183755 2
-
-# 개별 PDF 파일들로 자동 지연 보호를 적용하며 순차 다운로드
-uv run python main.py EP16183755 3
+epo-oa run EP21841218
+  → 40개 문서를 ZIP으로 다운로드
+  → toc.xml 파싱으로 문서 메타데이터 구성
+  → file/EP21841218/EP21841218_prosecution.md 생성
 ```
 
 ---
 
-## 데이터 저장 및 백업 구조
-프로그램이 동작하면 프로젝트 내에 아래와 같은 파일 구조를 유지합니다:
-- `./temp/main.py`: 현재 구동 중인 안정화된 최신 다운로더 소스코드.
-- `./temp/pyproject.toml`: 패키지 의존성 파일 백업본.
-- `./temp/EP16183755_all_documents.zip`: 실제 다운로드받은 ZIP 파일 보관 장소.
-- `./temp/EP16183755_individual_pdfs/`: 개별 문서 PDF 파일들이 저장되는 전용 폴더 (3번 모드 구동 시 생성).
+## 설치
+
+```bash
+# 기본 설치
+pip install epo-oa-cli
+
+# OCR 지원 포함 (이미지 PDF 텍스트 추출)
+pip install "epo-oa-cli[ocr]"
+```
+
+Python 3.12 이상이 필요합니다.
+
+---
+
+## 빠른 시작
+
+```bash
+# 1. 문서 목록 조회
+epo-oa list EP21841218
+
+# 2. ZIP 다운로드 + 압축 해제
+epo-oa download EP21841218
+
+# 3. PDF 파싱 → prosecution.md 생성
+epo-oa extract EP21841218
+
+# 4. 다운로드 + 추출 한 번에
+epo-oa run EP21841218
+```
+
+### OCR을 이용한 텍스트 추출
+
+EPO PDF는 전체 이미지 스캔 방식입니다. OCR을 먼저 실행하면 AI 분석 파일에 텍스트를 포함시킬 수 있습니다:
+
+```bash
+# 핵심 문서만 선택 OCR
+epo-oa ocr EP21841218 --codes 1703,1224,ABEX
+
+# 전체 OCR
+epo-oa ocr EP21841218
+
+# OCR 텍스트 포함 추출
+epo-oa extract EP21841218 --with-ocr
+```
+
+---
+
+## 명령어 목록
+
+| 명령어 | 설명 |
+|--------|------|
+| `epo-oa list <EP번호>` | EPO Register 문서 목록 조회 |
+| `epo-oa download <EP번호>` | 전체 문서 ZIP 다운로드 |
+| `epo-oa extract <EP번호>` | PDF 파싱 → `prosecution.md` / `prosecution.json` |
+| `epo-oa ocr <EP번호>` | 이미지 PDF → OCR 텍스트 PDF 변환 |
+| `epo-oa run <EP번호>` | 다운로드 + 추출 한 번에 실행 |
+
+### 주요 옵션
+
+```bash
+epo-oa list EP21841218 --format json            # JSON 형식으로 출력
+epo-oa download EP21841218 --force              # 기존 파일 무시하고 재다운로드
+epo-oa extract EP21841218 --format json         # JSON 출력
+epo-oa extract EP21841218 --with-ocr            # OCR 텍스트 포함
+epo-oa ocr EP21841218 --codes 1703,ABEX         # 특정 코드 문서만 OCR
+epo-oa ocr EP21841218 --in-place               # 원본 PDF 덮어쓰기
+```
+
+---
+
+## 출력 파일: `prosecution.md`
+
+AI 에이전트가 바로 사용할 수 있도록 구조화된 마크다운 파일을 생성합니다:
+
+```markdown
+# EPO Prosecution Analysis — EP21841218
+
+## Summary
+| 항목 | 건수 |
+|------|------|
+| 전체 문서 수 | 40 |
+| 🔴 심사 통지 (Office Action) | 2 |
+| 🔵 보정/응답 (Amendment) | 13 |
+| ✅ 허여/결정 (Grant) | 8 |
+
+## Timeline
+| Date | Cat | Document | File |
+|------|-----|----------|------|
+| 2023-10-30 | 🔍 | European Search Opinion (1703) 🖼️ | ... |
+| 2024-02-15 | 🔵 | Amended Claims (CLMSABEX) 🖼️ | ... |
+| 2026-02-05 | ✅ | Decision to Grant (2006A) 🖼️ | ... |
+
+## 🔴 Office Action Documents
+### European Search Opinion — 2023-10-30
+**OCR Text:**
+```text
+D1 WO 2020/138918 A1 (SAMSUNG ELECTRONICS CO LTD)
+1.1 D1 discloses an electronic device...
+` `` `
+```
+
+---
+
+## 문서 카테고리
+
+| 아이콘 | 카테고리 | 설명 |
+|--------|----------|------|
+| 🔴 | Office Action | 심사 통지, 검색의견서 (1224, 1703, 2003~2006 등) |
+| 🔵 | Amendment | 보정서, 의견서, 응답서 (CLMSABEX, DESCABEX, ABEX 등) |
+| ✅ | Grant | 허여 결정, 증서 (2006A, 2066, 2047 등) |
+| 🔍 | Search | 검색 보고서 (1503, 1503SS, ISR, IPRP 등) |
+| 💬 | Interview | 면담 기록 (INTERV, EXIN) |
+| ⚪ | Other | 수령증, 통지서 등 기타 행정 문서 |
+
+---
+
+## 과도한 접속 방지
+
+이 도구는 **공개 EPO 서버**를 이용합니다. 다음 원칙을 준수합니다:
+- 요청 사이에 1.5~3.0초 랜덤 대기
+- 브라우저와 동일한 헤더 설정
+- ZIP 아카이브 방식으로 HTTP 요청 최소화
+
+CI/CD 파이프라인 등에서 반복 실행 시 적절한 간격을 두어 사용해 주세요.
+
+---
+
+## AI 에이전트 활용 팁
+
+- **이미지 PDF** (`🖼️`): `path` 필드의 경로를 비전 지원 모델에 직접 전달하세요
+- **OCR 실행 후** `--with-ocr`: 텍스트 기반 LLM에서 문서 내용을 직접 분석 가능
+- **JSON 출력** (`--format json`): `path`·`text` 필드 포함 — 프로그래밍 연동에 활용
+- **prosecution.md**: 소규모 사건은 단일 컨텍스트 창 내에서 LLM 분석 가능
+
+---
+
+## 라이선스
+
+MIT
