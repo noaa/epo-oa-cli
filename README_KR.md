@@ -78,6 +78,7 @@ epo-oa extract EP21841218 --with-ocr
 | `epo-oa extract <EP번호>` | PDF 파싱 → `prosecution.md` / `prosecution.json` |
 | `epo-oa ocr <EP번호>` | 이미지 PDF → OCR 텍스트 PDF 변환 |
 | `epo-oa run <EP번호>` | 다운로드 + 추출 한 번에 실행 |
+| `epo-oa configure` | 프록시 / CA 인증서 설정 |
 
 ### 주요 옵션
 
@@ -89,6 +90,34 @@ epo-oa extract EP21841218 --with-ocr            # OCR 텍스트 포함
 epo-oa ocr EP21841218 --codes 1703,ABEX         # 특정 코드 문서만 OCR
 epo-oa ocr EP21841218 --in-place               # 원본 PDF 덮어쓰기
 ```
+
+---
+
+## 프록시 및 SSL 설정
+
+사내 네트워크 또는 커스텀 CA 인증서가 필요한 환경에서는:
+
+```bash
+epo-oa configure
+```
+
+대화형으로 다음 항목을 입력합니다:
+- **HTTPS 프록시 URL** — 예: `http://proxy.corp.example.com:8080`
+- **HTTP 프록시 URL** — 예: `http://proxy.corp.example.com:8080`
+- **CA 번들 파일 경로** — 사내 CA 인증서 `.pem` / `.crt` 파일 경로
+
+설정은 `~/.epo-oa.toml`에 저장됩니다:
+
+```toml
+[proxy]
+https = "http://proxy.corp.example.com:8080"
+http  = "http://proxy.corp.example.com:8080"
+
+[ssl]
+ca_bundle = "/etc/ssl/certs/corp-ca.pem"
+```
+
+설정 파일이 없으면 `requests`는 환경변수(`HTTPS_PROXY`, `HTTP_PROXY`, `REQUESTS_CA_BUNDLE`)로 자동 대체됩니다.
 
 ---
 

@@ -77,6 +77,7 @@ epo-oa extract EP21841218 --with-ocr
 | `epo-oa extract <EP>` | Parse PDFs → `prosecution.md` / `prosecution.json` |
 | `epo-oa ocr <EP>` | OCR image-based PDFs → searchable `*_ocr.pdf` |
 | `epo-oa run <EP>` | Download + extract in one step |
+| `epo-oa configure` | Set proxy / CA-cert options |
 
 ### Options
 
@@ -88,6 +89,34 @@ epo-oa extract EP21841218 --with-ocr          # Embed OCR text
 epo-oa ocr EP21841218 --codes 1703,ABEX       # Selective OCR
 epo-oa ocr EP21841218 --in-place              # Overwrite originals
 ```
+
+---
+
+## Proxy & SSL Configuration
+
+For corporate networks or environments that require a proxy or custom CA certificate:
+
+```bash
+epo-oa configure
+```
+
+This interactively prompts for:
+- **HTTPS proxy URL** — e.g. `http://proxy.corp.example.com:8080`
+- **HTTP proxy URL** — e.g. `http://proxy.corp.example.com:8080`
+- **CA bundle file path** — path to a custom `.pem` / `.crt` file
+
+Settings are saved to `~/.epo-oa.toml`:
+
+```toml
+[proxy]
+https = "http://proxy.corp.example.com:8080"
+http  = "http://proxy.corp.example.com:8080"
+
+[ssl]
+ca_bundle = "/etc/ssl/certs/corp-ca.pem"
+```
+
+If no config file exists, `requests` falls back to the standard environment variables (`HTTPS_PROXY`, `HTTP_PROXY`, `REQUESTS_CA_BUNDLE`).
 
 ---
 

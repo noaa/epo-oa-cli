@@ -94,7 +94,10 @@ def normalize_app_number(raw: str) -> str:
     return cleaned
 
 
-def _make_session() -> requests.Session:
+def _make_session(
+    proxies: dict | None = None,
+    verify: str | bool = True,
+) -> requests.Session:
     session = requests.Session()
     session.headers.update({
         "User-Agent": (
@@ -105,6 +108,9 @@ def _make_session() -> requests.Session:
         "Accept-Language": "en-US,en;q=0.9",
         "Referer": BASE_URL,
     })
+    if proxies:
+        session.proxies.update(proxies)
+    session.verify = verify
     return session
 
 
@@ -112,10 +118,14 @@ def _politeness_delay(min_sec: float = 1.5, max_sec: float = 3.0) -> None:
     time.sleep(random.uniform(min_sec, max_sec))
 
 
-def fetch_document_list(app_number: str) -> list[dict]:
+def fetch_document_list(
+    app_number: str,
+    proxies: dict | None = None,
+    verify: str | bool = True,
+) -> list[dict]:
     """EPO Register의 doclist 탭을 파싱해 문서 목록 반환."""
     url = f"{DOCLIST_URL}?number={app_number}&tab=doclist"
-    session = _make_session()
+    session = _make_session(proxies=proxies, verify=verify)
 
     try:
         response = session.get(url, timeout=20)

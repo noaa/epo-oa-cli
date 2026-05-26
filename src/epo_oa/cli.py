@@ -19,6 +19,7 @@ from rich.progress import (
 from rich.table import Table
 
 from epo_oa import __version__
+from epo_oa import config as cfg
 from epo_oa.register import (
     download_zip,
     extract_zip,
@@ -42,6 +43,7 @@ def main(ctx: click.Context, verbose: bool) -> None:
       epo-oa download EP21841218        # Download ZIP archive
       epo-oa extract EP21841218         # Parse PDFs → prosecution.md
       epo-oa run EP21841218             # All-in-one: download + extract
+      epo-oa configure                  # Set proxy / CA-cert options
     """
     ctx.ensure_object(dict)
     ctx.obj["verbose"] = verbose
@@ -83,7 +85,8 @@ def list_docs(application: str, fmt: str) -> None:
     err_console = _Console(stderr=True)
     err_console.print(f"[dim]Fetching document list for {app_num}...[/dim]")
 
-    docs = fetch_document_list(app_num)
+    request_kwargs = cfg.get_request_kwargs(cfg.load())
+    docs = fetch_document_list(app_num, **request_kwargs)
     if not docs:
         err_console.print(f"[red]No documents found for {app_num}.[/red]")
         raise SystemExit(1)
@@ -151,9 +154,11 @@ def download(application: str, output_dir: str | None, force: bool, no_extract: 
     console.print(f"[bold]Output:[/] {extract_dir}")
     console.print()
 
+    request_kwargs = cfg.get_request_kwargs(cfg.load())
+
     # 문서 목록 조회
     with console.status("[yellow]Fetching document list...[/yellow]"):
-        docs = fetch_document_list(app_num)
+        docs = fetch_document_list(app_num, **request_kwargs)
 
     if not docs:
         console.print(f"[red]No documents found for {app_num}.[/red]")
@@ -178,7 +183,7 @@ def download(application: str, output_dir: str | None, force: bool, no_extract: 
 
         Path(zip_dir).mkdir(parents=True, exist_ok=True)
         _politeness_delay(1.0, 2.0)
-        session = _make_session()
+        session = _make_session(**request_kwargs)
 
         try:
             response = session.post(DOWNLOAD_URL, data=payload, stream=True, timeout=60)
@@ -408,6 +413,69 @@ def _pdf_code(pdf_path: Path) -> str:
     return ""
 
 
+# ── configure ─────────────────────────────────────────────────────────────────
+
+@main.command()
+def configure() -> None:
+    """Interactively set proxy and CA-cert options and save to config file.
+
+    \b
+    Config file: ~/.epo-oa.toml
+    Press Enter with no value to skip a field.
+    Existing values are shown as defaults.
+    """
+    existing = cfg.load()
+    proxy_cfg = existing.get("proxy", {})
+    ssl_cfg = existing.get("ssl", {})
+
+    click.echo("EPO OA CLI — Configuration")
+    click.echo("─" * 40)
+    click.echo(f"Config file: {cfg.CONFIG_PATH}")
+    click.echo()
+
+    https_proxy = click.prompt(
+        "HTTPS proxy URL",
+        default=proxy_cfg.get("https", ""),
+        show_default=bool(proxy_cfg.get("https")),
+    ).strip()
+
+    http_proxy = click.prompt(
+        "HTTP  proxy URL",
+        default=proxy_cfg.get("http", ""),
+        show_default=bool(proxy_cfg.get("http")),
+    ).strip()
+
+    ca_bundle = click.prompt(
+        "CA bundle file path",
+        default=ssl_cfg.get("ca_bundle", ""),
+        show_default=bool(ssl_cfg.get("ca_bundle")),
+    ).strip()
+
+    new_config: dict = {}
+    if https_proxy or http_proxy:
+        new_config["proxy"] = {}
+        if https_proxy:
+            new_config["proxy"]["https"] = https_proxy
+        if http_proxy:
+            new_config["proxy"]["http"] = http_proxy
+    if ca_bundle:
+        new_config["ssl"] = {"ca_bundle": ca_bundle}
+
+    if not new_config:
+        click.echo("\nNo values entered — config file not saved.")
+        return
+
+    cfg.save(new_config)
+    click.echo(f"\nConfig saved: {cfg.CONFIG_PATH}")
+
+    click.echo()
+    if new_config.get("proxy"):
+        for k, v in new_config["proxy"].items():
+            click.echo(f"  proxy.{k} = {v}")
+    if new_config.get("ssl"):
+        click.echo(f"  ssl.ca_bundle = {new_config['ssl']['ca_bundle']}")
+
+
 # ── run (all-in-one) ──────────────────────────────────────────────────────────
 
 @main.command()
@@ -448,9 +516,11 @@ def run(application: str, output_dir: str | None, fmt: str, force: bool) -> None
     ))
     console.print()
 
+    request_kwargs = cfg.get_request_kwargs(cfg.load())
+
     # 1. 문서 목록
     with console.status("[yellow]Fetching document list...[/yellow]"):
-        docs = fetch_document_list(app_num)
+        docs = fetch_document_list(app_num, **request_kwargs)
 
     if not docs:
         console.print(f"[red]No documents found for {app_num}.[/red]")
@@ -473,7 +543,7 @@ def run(application: str, output_dir: str | None, fmt: str, force: bool) -> None
         }
         Path(zip_dir).mkdir(parents=True, exist_ok=True)
         _politeness_delay(1.0, 2.0)
-        session = _make_session()
+        session = _make_session(**request_kwargs)
 
         try:
             response = session.post(DOWNLOAD_URL, data=payload, stream=True, timeout=60)
