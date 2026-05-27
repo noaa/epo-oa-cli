@@ -25,11 +25,18 @@ epo-oa run EP21841218
 ## 설치
 
 ```bash
-# 기본 설치
+# pip
 pip install epo-oa-cli
+
+# uv (글로벌 설치 — 권장)
+uv tool install epo-oa-cli
+
+# uv (프로젝트 의존성으로 추가)
+uv add epo-oa-cli
 
 # OCR 지원 포함 (이미지 PDF 텍스트 추출)
 pip install "epo-oa-cli[ocr]"
+uv tool install "epo-oa-cli[ocr]"
 ```
 
 Python 3.12 이상이 필요합니다.
