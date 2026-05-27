@@ -1,6 +1,6 @@
 [project]
 name = "epo-oa-cli"
-version = "0.2.2"
+version = "0.2.3"
 description = "EPO patent prosecution history CLI — download, parse, and analyze European patent documents for AI-assisted analysis"
 readme = "README.md"
 license = { text = "MIT" }

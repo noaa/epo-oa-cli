@@ -164,6 +164,19 @@ Please do not run this tool in tight loops or CI pipelines without appropriate t
 
 ---
 
+## Document Categories
+
+| Icon | Category | Description |
+|------|----------|-------------|
+| 🔴 | Office Action | Examination notices, search opinions (1224, 1703, 2003–2006, etc.) |
+| 🔵 | Amendment | Amendments, observations, responses (CLMSABEX, DESCABEX, ABEX, etc.) |
+| ✅ | Grant | Grant decisions, certificates (2006A, 2066, 2047, etc.) |
+| 🔍 | Search | Search reports (1503, 1503SS, ISR, IPRP, etc.) |
+| 💬 | Interview | Interview summaries (INTERV, EXIN) |
+| ⚪ | Other | Receipts, administrative notices, miscellaneous |
+
+---
+
 ## Notes for AI Agents
 
 - Image-only PDFs show `🖼️` — provide the `path` field directly to vision-capable models
